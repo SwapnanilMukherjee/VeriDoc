@@ -59,14 +59,14 @@ The simulation demonstrates a complete document lifecycle with active attack sce
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    PublicRecordsServer                       │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
-│  │ Upload   │→│ HSM Sign │→│  Batch   │→│ Witness  │   │
-│  │ Handler  │  │ & Chain  │  │ Merkle   │  │ Publish  │   │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
-│         ↓         │   persistent log    │  3 replicas    │
-│         └─────────┼──→ events/          └─→ witness1-3   │
-│                   └─→ in-memory state                     │
+│                    PublicRecordsServer                      │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │
+│  │ Upload   │→ │ HSM Sign │→ │  Batch   │→ │ Witness  │     │
+│  │ Handler  │  │ & Chain  │  │ Merkle   │  │ Publish  │     │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘     │
+│                   │   persistent log    │  3 replicas       │
+│                   └─→ in-memory state   └─→ witness1-3      │
+│                                                             │
 └─────────────────────────────────────────────────────────────┘
          ↑                                              ↓
          │                                              ↓
@@ -92,7 +92,6 @@ Every download undergoes rigorous client-side verification:
 
 1. **Upload 3 Documents**: `doc1.txt`, `doc2.txt`, `doc3.txt`
    - Each generates a Signed Upload Receipt (SUR)
-   - Events persisted to `events/current_batch.log` (crash-safe)
    - HSM chain updates: `Hash₁ → Hash₂ → Hash₃`
 
 2. **Batch 0 Publication**: All 3 events batched into Merkle tree
@@ -120,23 +119,6 @@ Every download undergoes rigorous client-side verification:
 
 8. **Chain Summary**: Shows cryptographic progression of all events
    - Each hash depends on entire history
-
-## ⚠️ Important Security Note
-
-**Known Vulnerability**: The `events/current_batch.log` file is currently stored in **plaintext**. An adversary with file system access could:
-
-1. Modify the log before server restart
-2. Corrupt the HSM's `latest_event_hash` on state restoration
-3. Insert fraudulent events that get batched and signed
-
-**This IS NOT detected by witness audit logs** because tampering occurs *before* witness publication.
-
-**Mitigation**: In production, the event log must be:
-- Stored within the HSM trust boundary
-- Or HSM-signed before writing to disk
-- Or use a hardware-protected write-ahead log
-
-This is acknowledged as a simulation limitation for academic demonstration.
 
 ## 🔑 Cryptographic Details
 
